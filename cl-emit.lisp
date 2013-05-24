@@ -17,16 +17,22 @@
 
 (defmacro! define-emit-rule (name destructure-vars (&body emit) &optional check)
   (let ((emit-lambda `(lambda (,g!-node)
-			(destructuring-bind ,destructure-vars ,g!-node
-			  ,@emit)))
+			,(if (atom destructure-vars)
+			     `(let ((,destructure-vars ,g!-node))
+				,@emit)
+			     `(destructuring-bind ,destructure-vars ,g!-node
+				,@emit))))
 	(check-lambda `(lambda (,g!-node)
 			 ,@(if check
-			       `((destructuring-bind ,destructure-vars ,g!-node
-				 ,@check))
+			       `(,(if (atom destructure-vars)
+				      `(let ((,destructure-vars ,g!-node))
+					 ,@check)
+				      `(destructuring-bind ,destructure-vars ,g!-node
+					 ,@check)))
 			       `((declare (ignore ,g!-node))
 				 t)))))
-    `(setf (gethash ,name *emit-rules*) (make-emit-rule-cell :emit-lambda ,emit-lambda
-							     :check-lambda ,check-lambda))))
+    `(setf (gethash ',name *emit-rules*) (make-emit-rule-cell :emit-lambda ,emit-lambda
+							      :check-lambda ,check-lambda))))
 
 ;;; Memoization cache.
 ;; Actually, there are 2 caches - one for results of "type checks" - check-lambdas,
@@ -100,11 +106,15 @@
 		      (setf (get-emit-cached rule node) *failed*)))))
 	
 (defparameter *failed* (gensym) "Gensym, that denotes failure of emission.")
+(defparameter *void* (gensym) "Gensym, that denotes success, but no value at all.")
 
 (defun emit (rule node)
   (let ((*check-cache* (make-check-cache))
 	(*emit-cache* (make-emit-cache))
-	(*failed* (gensym)))
+	(*failed* (gensym))
+	(*void* (gensym)))
     (let ((res (descend rule node)))
-      (if (eq res *failed*)
-	  (error 'emit-error)))))
+      (cond ((eq res *failed*) (error 'emit-error))
+	    ((eq res *void*) nil)
+	    (t res)))))
+
