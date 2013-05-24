@@ -1,5 +1,5 @@
 ;;;; package.lisp
 
 (defpackage #:cl-emit
-  (:use #:cl))
+  (:use #:cl #:defmacro-enhance))
 
