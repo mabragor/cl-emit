@@ -5,7 +5,7 @@
 ;;; OK, now what needs to be created?
 ;; - memoization cache
 ;; - registration of the memoization contexts
-;; - FAIL macrolet in the context of DEFINE-EMIT-RULE macro
+;; - FAIL macrolet in the context of DEFEMITRULE macro
 ;; - tests for all that
 ;; - || && and other convenient constructs
 
@@ -15,7 +15,7 @@
   emit-lambda
   check-lambda)
 
-(defmacro! define-emit-rule (name destructure-vars (&body emit) &optional check)
+(defmacro! defemitrule (name destructure-vars (&body emit) &optional check)
   (let ((emit-lambda `(lambda (,g!-node)
 			,(if (atom destructure-vars)
 			     `(let ((,destructure-vars ,g!-node))

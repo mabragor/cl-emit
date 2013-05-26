@@ -19,7 +19,7 @@
 
 (define-emit-env emit-tests)
 
-(define-rule simple-int x
+(define-emit-rule simple-int x
   ((format nil "~a" x))
   ((integerp x)))
 

@@ -12,10 +12,10 @@
 	  (defmacro ,(sb-int:symbolicate "WITH-" symbol "-CONTEXTS") (&body body)
 	    `(let ((contexts ,',(sb-int:symbolicate symbol "-CONTEXTS")))
 	       ,@body))
-	  (defmacro ,(sb-int:symbolicate 'define-rule) (name destructure-vars (&body emit) &optional check)
+	  (defmacro ,(sb-int:symbolicate 'define-emit-rule) (name destructure-vars (&body emit) &optional check)
 	    `(,',(sb-int:symbolicate "WITH-" symbol "-RULES")
 		 (,',(sb-int:symbolicate "WITH-" symbol "-CONTEXTS")
-		     (define-emit-rule ,name ,destructure-vars ,emit ,check))))
+		     (defemitrule ,name ,destructure-vars ,emit ,check))))
 	  (defmacro ,(sb-int:symbolicate "REGISTER-" symbol "-CONTEXT")
 	      (context-var &rest plausible-contexts)
 	    `(progn (defparameter ,context-var ,(sb-int:keywordicate (format nil "~a" (car plausible-contexts))))
@@ -31,7 +31,7 @@
 				     (defun ,pred-name (x)
 				       (declare (ignore x))
 				       (equal ,context-var ,(sb-int:keywordicate context-name)))
-				     (,(sb-int:symbolicate 'define-rule) ,rule-name x
+				     (,(sb-int:symbolicate 'define-emit-rule) ,rule-name x
 				       ((declare (ignore x))
 					(void))))))
 			      (mapcar (lambda (x) (format nil "~a" x)) plausible-contexts))

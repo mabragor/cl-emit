@@ -2,5 +2,5 @@
 
 (defpackage #:cl-emit
   (:use #:cl #:defmacro-enhance #:rutils.symbol)
-  (:export #:define-emit-env #:emit #:define-emit-rule))
+  (:export #:define-emit-env #:emit #:defemitrule))
 
