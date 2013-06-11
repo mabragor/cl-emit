@@ -37,7 +37,7 @@
 				  ((,pred-name x))))))
 			 (mapcar (lambda (x) (format nil "~a" x)) plausible-contexts))
 	       (push ',context-var ,',(sb-int:symbolicate symbol "-EMIT-CONTEXTS"))))
-     (defmacro ,(sb-int:symbolicate symbol "-EMIT") (symbol node)
+     (defmacro ,(sb-int:symbolicate symbol "-EMIT") (symbol &optional node)
        `(,',(sb-int:symbolicate "WITH-" symbol "-EMIT-RULES")
 	    (,',(sb-int:symbolicate "WITH-" symbol "-EMIT-CONTEXTS")
 		(emit ,symbol ,node))))))

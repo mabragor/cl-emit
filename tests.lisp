@@ -40,4 +40,8 @@
   (signals (error "emitting non-int didn't signal an error.")
     (let ((test-context :out)) (emit-tests-emit 'in-test-context 123))))
 
+(define-emit-rule no-node-rule () ("No node now."))
+(test no-node
+  (is (equal "No node now."
+	     (emit-tests-emit 'no-node-rule))))
   

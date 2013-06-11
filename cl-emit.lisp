@@ -13,29 +13,35 @@
 
 (defstruct emit-rule-cell
   emit-lambda
-  check-lambda)
+  check-lambda
+  no-node-p)
 
 (defvar void (gensym) "Variable used to report that nothing should be output.")
-
+(defvar no-node (gensym) "Fake node to memoize the result of emission of no-node rules.")
 
 (defmacro! defemitrule (name destructure-vars (&body emit) &optional check)
-  (let ((emit-lambda `(lambda (,g!-node)
-			,(if (atom destructure-vars)
-			     `(let ((,destructure-vars ,g!-node))
-				,@emit)
-			     `(destructuring-bind ,destructure-vars ,g!-node
-				,@emit))))
-	(check-lambda `(lambda (,g!-node)
-			 ,@(if check
-			       `(,(if (atom destructure-vars)
-				      `(let ((,destructure-vars ,g!-node))
-					 ,@check)
-				      `(destructuring-bind ,destructure-vars ,g!-node
-					 ,@check)))
-			       `((declare (ignore ,g!-node))
-				 t)))))
+  (let ((emit-lambda (if destructure-vars
+			 `(lambda (,g!-node)
+			    ,(if (atom destructure-vars)
+				 `(let ((,destructure-vars ,g!-node))
+				    ,@emit)
+				 `(destructuring-bind ,destructure-vars ,g!-node
+				    ,@emit)))
+			 `(lambda () ,@emit)))
+	(check-lambda (if destructure-vars
+			  `(lambda (,g!-node)
+			     ,@(if check
+				   `(,(if (atom destructure-vars)
+					  `(let ((,destructure-vars ,g!-node))
+					     ,@check)
+					  `(destructuring-bind ,destructure-vars ,g!-node
+					     ,@check)))
+				   `((declare (ignore ,g!-node))
+				     t)))
+			  `(lambda () ,@(or check (list 't))))))
     `(setf (gethash ',name *emit-rules*) (make-emit-rule-cell :emit-lambda ,emit-lambda
-							      :check-lambda ,check-lambda))))
+							      :check-lambda ,check-lambda
+							      :no-node-p ,(if destructure-vars nil t)))))
 
 ;;; Memoization cache.
 ;; Actually, there are 2 caches - one for results of "type checks" - check-lambdas,
@@ -98,22 +104,31 @@
 
 (defmacro fail () (error 'emit-error))
 
-(defun descend (rule node)
-  (a:acond-got ((get-emit-cached rule node) it)
-	       (t (if (or (get-check-cached rule node)
-			  (setf (get-check-cached rule node)
-				(funcall (emit-rule-cell-check-lambda (or (gethash rule *emit-rules*)
-									  (error 'emit-error)))
-					 node)))
-		      (setf (get-emit-cached rule node)
-			    (handler-case (funcall (emit-rule-cell-emit-lambda (gethash rule *emit-rules*)) node)
-			      (emit-error () *failed*)))
-		      (setf (get-emit-cached rule node) *failed*)))))
+(defun descend (rule &optional node)
+  (let* ((rule-cell (or (gethash rule *emit-rules*)
+			(error 'emit-error)))
+	 (no-node-p (emit-rule-cell-no-node-p rule-cell))
+	 (node (if no-node-p
+		   no-node
+		   node)))
+    (a:acond-got ((get-emit-cached rule node) it)
+		 (t (if (or (get-check-cached rule node)
+			    (setf (get-check-cached rule node)
+				  (if no-node-p
+				      (funcall (emit-rule-cell-check-lambda rule-cell))
+				      (funcall (emit-rule-cell-check-lambda rule-cell)
+					       node))))
+			(setf (get-emit-cached rule node)
+			      (handler-case (if no-node-p
+						(funcall (emit-rule-cell-emit-lambda (gethash rule *emit-rules*)))
+						(funcall (emit-rule-cell-emit-lambda (gethash rule *emit-rules*)) node))
+				(emit-error () *failed*)))
+			(setf (get-emit-cached rule node) *failed*))))))
 	
 (defparameter *failed* (gensym) "Gensym, that denotes failure of emission.")
 (defparameter *void* (gensym) "Gensym, that denotes success, but no value at all.")
 
-(defun emit (rule node)
+(defun emit (rule &optional node)
   (let ((*check-cache* (make-check-cache))
 	(*emit-cache* (make-emit-cache))
 	(*failed* (gensym))
