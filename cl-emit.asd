@@ -19,7 +19,7 @@
 (defsystem :cl-emit-tests
   :description "Tests for CL-EMIT."
   :licence "GPL"
-  :depends-on (:cl-emit :eos :cl-interpol)
+  :depends-on (:cl-emit :eos :cl-interpol :rutils)
   :components ((:file "tests")))
 
 (defmethod perform ((op test-op) (sys (eql (find-system :cl-emit))))

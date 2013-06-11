@@ -15,6 +15,9 @@
   emit-lambda
   check-lambda)
 
+(defvar void (gensym) "Variable used to report that nothing should be output.")
+
+
 (defmacro! defemitrule (name destructure-vars (&body emit) &optional check)
   (let ((emit-lambda `(lambda (,g!-node)
 			,(if (atom destructure-vars)
@@ -99,7 +102,9 @@
   (a:acond-got ((get-emit-cached rule node) it)
 	       (t (if (or (get-check-cached rule node)
 			  (setf (get-check-cached rule node)
-				(funcall (emit-rule-cell-check-lambda (gethash rule *emit-rules*)) node)))
+				(funcall (emit-rule-cell-check-lambda (or (gethash rule *emit-rules*)
+									  (error 'emit-error)))
+					 node)))
 		      (setf (get-emit-cached rule node)
 			    (handler-case (funcall (emit-rule-cell-emit-lambda (gethash rule *emit-rules*)) node)
 			      (emit-error () *failed*)))
