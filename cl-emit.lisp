@@ -100,36 +100,54 @@
     result))
 		      
 				  
-(define-condition emit-error (error) ())
+(define-condition emit-error (simple-condition error)
+  ((reason :reader emit-error-reason :initarg :reason))
+  (:documentation "An error, which is signalled when emission fails."))
 
-(defmacro fail () (error 'emit-error))
+(defun fail-emit (&optional (reason "No particular reason.") &rest args)
+  (let ((reason (apply #'format `(nil ,reason ,@args))))
+    (error 'emit-error
+	   :reason reason
+	   :format-control "~a~%"
+	   :format-arguments (list reason))))
+
+(defun failed-emit-p (x)
+  (if (and (consp x) (equal (car x) *failed*))
+      ;; Just to make sure that NIL reason does not ruin everything.
+      (or (cadr x) "No particular reason.")))
 
 (defun descend (rule &optional node)
   (let* ((rule-cell (or (gethash rule *emit-rules*)
-			(error 'emit-error)))
+			(fail-emit "Rule ~a is undefined" rule)))
 	 (no-node-p (emit-rule-cell-no-node-p rule-cell))
 	 (node (if no-node-p
 		   no-node
 		   node)))
-    (a:acond-got ((get-emit-cached rule node) (if (equal it *failed*)
-						  (error 'emit-error)
-						  it))
-		 (t (a:apif (lambda (x) (equal *failed* x))
-			    (if (or (get-check-cached rule node)
-				    (setf (get-check-cached rule node)
-					  (if no-node-p
-					      (funcall (emit-rule-cell-check-lambda rule-cell))
-					      (funcall (emit-rule-cell-check-lambda rule-cell)
-						       node))))
-				(setf (get-emit-cached rule node)
-				      (handler-case (if no-node-p
-							(funcall (emit-rule-cell-emit-lambda (gethash rule *emit-rules*)))
-							(funcall (emit-rule-cell-emit-lambda (gethash rule *emit-rules*))
-								 node))
-					(emit-error () *failed*)))
-				(setf (get-emit-cached rule node) *failed*))
-			    (error 'emit-error)
-			    it)))))
+    (macrolet! ((escalate-if-failed-emit (var) `(a:avif ,g!-reason (failed-emit-p ,var)
+							(fail-emit ,g!-reason)
+							,var)))
+      (a:acond-got ((get-emit-cached rule node) (escalate-if-failed-emit it))
+		   (t (let ((check (or (get-check-cached rule node)
+				       (setf (get-check-cached rule node)
+					     (handler-case (if no-node-p
+							       (funcall (emit-rule-cell-check-lambda rule-cell))
+							       (funcall (emit-rule-cell-check-lambda rule-cell)
+									node))
+					       (emit-error (e) `(,*failed* ,(emit-error-reason e))))))))
+			(a:avif reason (failed-emit-p check)
+				(fail-emit "Check for rule ~a failed: ~a." rule reason)
+				(if (not check)
+				    (fail-emit "Check for rule ~a failed." rule)
+				    (let ((emit (setf (get-emit-cached rule node)
+						      (handler-case (if no-node-p
+									(funcall (emit-rule-cell-emit-lambda
+										  (gethash rule *emit-rules*)))
+									(funcall (emit-rule-cell-emit-lambda
+										  (gethash rule *emit-rules*))
+										 node))
+							(emit-error (e) `(,*failed* ,(emit-error-reason e)))))))
+				      (escalate-if-failed-emit emit))))))))))
+
 	
 (defparameter *failed* (gensym) "Gensym, that denotes failure of emission.")
 (defparameter *void* (gensym) "Gensym, that denotes success, but no value at all.")
@@ -140,7 +158,7 @@
 	(*failed* (gensym))
 	(*void* (gensym)))
     (let ((res (descend rule node)))
-      (cond ((eq res *failed*) (error 'emit-error))
+      (cond ((eq res *failed*) (fail-emit))
 	    ((eq res *void*) nil)
 	    (t res)))))
 

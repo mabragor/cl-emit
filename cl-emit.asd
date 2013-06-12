@@ -7,7 +7,7 @@
 
 (asdf:defsystem #:cl-emit
   :serial t
-  :version "0.1"
+  :version "0.2"
   :description "Context-sensitive serializing made easy."
   :author "Alexander Popolitov <popolit@gmail.com>"
   :license "GPL"

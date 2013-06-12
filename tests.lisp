@@ -45,3 +45,17 @@
   (is (equal "No node now."
 	     (emit-tests-emit 'no-node-rule))))
   
+(define-emit-rule failing-rule () () ((fail-emit "deliberate check")))
+(define-emit-rule failing-rule-2 () ((fail-emit "deliberate emit")))
+(define-emit-rule failing-rule-3 () () (nil))
+(test informative-failures
+  (is (equal "Check for rule FAILING-RULE failed: deliberate check."
+	     (handler-case (emit-tests-emit 'failing-rule)
+	       (cl-emit::emit-error (e) (cl-emit::emit-error-reason e)))))
+  (is (equal "deliberate emit"
+	     (handler-case (emit-tests-emit 'failing-rule-2)
+	       (cl-emit::emit-error (e) (cl-emit::emit-error-reason e)))))
+  (is (equal "Check for rule FAILING-RULE-3 failed."
+	     (handler-case (emit-tests-emit 'failing-rule-3)
+	       (cl-emit::emit-error (e) (cl-emit::emit-error-reason e)))))
+  )
