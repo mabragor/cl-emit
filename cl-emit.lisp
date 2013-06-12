@@ -111,19 +111,25 @@
 	 (node (if no-node-p
 		   no-node
 		   node)))
-    (a:acond-got ((get-emit-cached rule node) it)
-		 (t (if (or (get-check-cached rule node)
-			    (setf (get-check-cached rule node)
-				  (if no-node-p
-				      (funcall (emit-rule-cell-check-lambda rule-cell))
-				      (funcall (emit-rule-cell-check-lambda rule-cell)
-					       node))))
-			(setf (get-emit-cached rule node)
-			      (handler-case (if no-node-p
-						(funcall (emit-rule-cell-emit-lambda (gethash rule *emit-rules*)))
-						(funcall (emit-rule-cell-emit-lambda (gethash rule *emit-rules*)) node))
-				(emit-error () *failed*)))
-			(setf (get-emit-cached rule node) *failed*))))))
+    (a:acond-got ((get-emit-cached rule node) (if (equal it *failed*)
+						  (error 'emit-error)
+						  it))
+		 (t (a:apif (lambda (x) (equal *failed* x))
+			    (if (or (get-check-cached rule node)
+				    (setf (get-check-cached rule node)
+					  (if no-node-p
+					      (funcall (emit-rule-cell-check-lambda rule-cell))
+					      (funcall (emit-rule-cell-check-lambda rule-cell)
+						       node))))
+				(setf (get-emit-cached rule node)
+				      (handler-case (if no-node-p
+							(funcall (emit-rule-cell-emit-lambda (gethash rule *emit-rules*)))
+							(funcall (emit-rule-cell-emit-lambda (gethash rule *emit-rules*))
+								 node))
+					(emit-error () *failed*)))
+				(setf (get-emit-cached rule node) *failed*))
+			    (error 'emit-error)
+			    it)))))
 	
 (defparameter *failed* (gensym) "Gensym, that denotes failure of emission.")
 (defparameter *void* (gensym) "Gensym, that denotes success, but no value at all.")
