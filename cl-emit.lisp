@@ -43,6 +43,25 @@
 							      :check-lambda ,check-lambda
 							      :no-node-p ,(if destructure-vars nil t)))))
 
+(defmacro! || (&rest clauses)
+  "Ordered choice of emission."
+  `(let ((,g!-lambdas (list ,@(mapcar (lambda (x) `(lambda () ,x)) clauses))))
+     ;; Use DOLIST instead of ITER cause ITER requires using package to use iterate,
+     ;; otherwise generating obscure errors, which I do not know how fix now
+     (let (,g!-reasons)
+       (dolist (,g!-lambda ,g!-lambdas
+		(fail-emit "Ordered choice failed with reasons:~%~{  - ~a~%~}" (nreverse ,g!-reasons)))
+	 (handler-case (funcall ,g!-lambda)
+	   (emit-error (e) (push (emit-error-reason e) ,g!-reasons))
+	   (:no-error (result)
+	     (return result)))))))
+
+
+(defmacro! fail-muffled (&rest forms)
+  `(handler-case (progn ,forms)
+     (emit-error (e) *void*)))
+  
+
 ;;; Memoization cache.
 ;; Actually, there are 2 caches - one for results of "type checks" - check-lambdas,
 ;; and the other for results of emission of the given node in the given context.
