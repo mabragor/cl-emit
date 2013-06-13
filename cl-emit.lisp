@@ -53,8 +53,8 @@
 		(fail-emit "Ordered choice failed with reasons:~%~{  - ~a~%~}" (nreverse ,g!-reasons)))
 	 (handler-case (funcall ,g!-lambda)
 	   (emit-error (e) (push (emit-error-reason e) ,g!-reasons))
-	   (:no-error (result)
-	     (return result)))))))
+	   (:no-error (&rest results)
+	     (return (apply #'values results))))))))
 
 
 (defmacro! fail-muffled (&rest forms)
