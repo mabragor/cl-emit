@@ -1,11 +1,11 @@
 (in-package :cl-user)
 
-(defpackage :cl-emit-tests
-  (:use :alexandria :cl :cl-emit :eos :iterate)
+(defpackage :time-liquid-tests
+  (:use :alexandria :cl :time-liquid :eos :iterate)
   (:shadowing-import-from :rutils.symbol :eval-always)
   (:export #:run-tests))
 
-(in-package :cl-emit-tests)
+(in-package :time-liquid-tests)
 
 (cl-interpol:enable-interpol-syntax)
 
@@ -33,7 +33,7 @@
 (eval-always
   (register-emit-tests-emit-context test-context in out))
 (test contexts
-  (is (equal cl-emit::void
+  (is (equal time-liquid::void
 	     (let ((test-context :out)) (emit-tests-emit 'out-test-context 123))))
   (signals (error "emitting non-int didn't signal an error.")
     (emit-tests-emit 'out-test-context 123))
@@ -47,7 +47,7 @@
 
 (defmacro capture-emit-fail-reason (&rest forms)
   `(handler-case (progn ,@forms)
-     (cl-emit::emit-error (e) (cl-emit::emit-error-reason e))))
+     (time-liquid::emit-error (e) (time-liquid::emit-error-reason e))))
   
 (define-emit-rule failing-rule () () ((fail-emit "deliberate check")))
 (define-emit-rule failing-rule-2 () ((fail-emit "deliberate emit")))

@@ -1,6 +1,6 @@
-;;;; This file is one of components of CL-EMIT system, licenced under GPL, see COPYING for details
+;;;; This file is one of components of TIME-LIQUID system, licenced under GPL, see COPYING for details
 
-(in-package #:cl-emit)
+(in-package #:time-liquid)
 
 ;;; OK, now what needs to be created?
 ;; - memoization cache

@@ -1,6 +1,6 @@
 ;;;; This file is one of components of CL-EMIT system, licenced under GPL, see COPYING for details
 
-(in-package #:cl-emit)
+(in-package #:time-liquid)
 
 (defmacro define-emit-env (symbol)
   `(eval-always
